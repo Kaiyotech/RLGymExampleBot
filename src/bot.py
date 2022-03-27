@@ -3,7 +3,7 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 
 import numpy as np
 from agent import Agent
-from obs.default_obs import DefaultObs
+from obs.advanced_obs import AdvancedObs
 from rlgym_compat import GameState
 
 
@@ -13,7 +13,7 @@ class RLGymExampleBot(BaseAgent):
 
         # FIXME Hey, botmaker. Start here:
         # Swap the obs builder if you are using a different one, RLGym's AdvancedObs is also available
-        self.obs_builder = DefaultObs()
+        self.obs_builder = AdvancedObs()
         # Your neural network logic goes inside the Agent class, go take a look inside src/agent.py
         self.agent = Agent()
         # Adjust the tickskip if your agent was trained with a different value
@@ -25,7 +25,7 @@ class RLGymExampleBot(BaseAgent):
         self.update_action = True
         self.ticks = 0
         self.prev_time = 0
-        print('RLGymExampleBot Ready - Index:', index)
+        print(f'{self.name} Ready - Index:', index)
 
     def initialize_agent(self):
         # Initialize the rlgym GameState object now that the game is active and the info is available
@@ -36,12 +36,16 @@ class RLGymExampleBot(BaseAgent):
         self.action = np.zeros(8)
         self.update_action = True
 
+    def reshape_state(self, gamestate):
+        # TODO - reshape from 2v2 or 3v3 or 1v1 to other versions
+        pass
+
     def get_output(self, packet: GameTickPacket) -> SimpleControllerState:
         cur_time = packet.game_info.seconds_elapsed
         delta = cur_time - self.prev_time
         self.prev_time = cur_time
 
-        ticks_elapsed = delta // 0.008  # Smaller than 1/120 on purpose
+        ticks_elapsed = self.ticks*120  # Smaller than 1/120 on purpose
         self.ticks += ticks_elapsed
         self.game_state.decode(packet, ticks_elapsed)
 
@@ -60,7 +64,7 @@ class RLGymExampleBot(BaseAgent):
             # self.renderer.draw_string_3d(closest_op.car_data.position, 2, 2, "CLOSEST", self.renderer.white())
 
             # Here we are are rebuilding the player list as if the match were a 1v1
-            self.game_state.players = [player, opponents[0]]
+            self.game_state.players = [player, closest_op]
 
             obs = self.obs_builder.build_obs(player, self.game_state, self.action)
             self.action = self.agent.act(obs)
