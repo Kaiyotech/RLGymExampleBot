@@ -15,7 +15,7 @@ class RLGymExampleBot(BaseAgent):
 
         # FIXME Hey, botmaker. Start here:
         # Swap the obs builder if you are using a different one, RLGym's AdvancedObs is also available
-        self.obs_builder = DefaultObs()
+        self.obs_builder = AdvancedObs()
         # Swap the action parser if you are using a different one, RLGym's Discrete and Continuous are also available
         self.act_parser = DefaultAction()
         # Your neural network logic goes inside the Agent class, go take a look inside src/agent.py
@@ -90,11 +90,12 @@ class RLGymExampleBot(BaseAgent):
         return self.controls
 
     def update_controls(self, action):
-        self.controls.throttle = action[0]
-        self.controls.steer = action[1]
-        self.controls.pitch = action[2]
-        self.controls.yaw = 0 if action[5] > 0 else action[3]
-        self.controls.roll = action[4]
+        # print(action)
+        self.controls.throttle = (action[0] / 50) - 1
+        self.controls.steer = (action[1] / 50) - 1
+        self.controls.pitch = (action[2] / 50) - 1
+        self.controls.yaw = 0 if action[5] > 0 else (action[3] / 50) - 1
+        self.controls.roll = (action[4] / 50) - 1
         self.controls.jump = action[5] > 0
         self.controls.boost = action[6] > 0
         self.controls.handbrake = action[7] > 0
