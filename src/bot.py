@@ -3,7 +3,7 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 
 import numpy as np
 
-from action.default_act import DefaultAction
+from action.discrete_act import DiscreteAction
 from agent import Agent
 from obs.advanced_obs import AdvancedObs
 from rlgym_compat import GameState
@@ -17,7 +17,7 @@ class RLGymExampleBot(BaseAgent):
         # Swap the obs builder if you are using a different one, RLGym's AdvancedObs is also available
         self.obs_builder = AdvancedObs()
         # Swap the action parser if you are using a different one, RLGym's Discrete and Continuous are also available
-        self.act_parser = DefaultAction()
+        self.act_parser = DiscreteAction()
         # Your neural network logic goes inside the Agent class, go take a look inside src/agent.py
         self.agent = Agent()
         # Adjust the tickskip if your agent was trained with a different value
@@ -91,11 +91,11 @@ class RLGymExampleBot(BaseAgent):
 
     def update_controls(self, action):
         # print(action)
-        self.controls.throttle = (action[0] / 50) - 1
-        self.controls.steer = (action[1] / 50) - 1
-        self.controls.pitch = (action[2] / 50) - 1
-        self.controls.yaw = 0 if action[5] > 0 else (action[3] / 50) - 1
-        self.controls.roll = (action[4] / 50) - 1
+        self.controls.throttle = action[0]
+        self.controls.steer = action[1]
+        self.controls.pitch = action[2]
+        self.controls.yaw = 0 if action[5] > 0 else action[3]
+        self.controls.roll = action[4]
         self.controls.jump = action[5] > 0
         self.controls.boost = action[6] > 0
         self.controls.handbrake = action[7] > 0
