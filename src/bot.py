@@ -6,7 +6,18 @@ import numpy as np
 from action.default_act import DefaultAction
 from agent import Agent
 from obs.advanced_obs import AdvancedObs
-from rlgym_compat import GameState
+from rlgym_compat import GameState, PhysicsObject, PlayerData
+from typing import List
+
+
+def _make_dummy_player(dummies: [PlayerData]):
+    player = PlayerData()
+    player.car_id = 0
+    player.team_num = 0
+    player.is_demoed = True
+    player.boost_amount = 0
+    dummies.extend([player])
+    return
 
 
 class RLGymExampleBot(BaseAgent):
@@ -29,6 +40,7 @@ class RLGymExampleBot(BaseAgent):
         self.update_action = True
         self.ticks = 0
         self.prev_time = 0
+        self.expected_team_size = 3
         print('RLGymExampleBot Ready - Index:', index)
 
     def initialize_agent(self):
@@ -63,14 +75,18 @@ class RLGymExampleBot(BaseAgent):
                 # There's no opponent, we assume this model is 1v0
                 self.game_state.players = [player]
             else:
-                # Sort by distance to ball
-                teammates.sort(key=lambda p: np.linalg.norm(self.game_state.ball.position - p.car_data.position))
-                opponents.sort(key=lambda p: np.linalg.norm(self.game_state.ball.position - p.car_data.position))
-
-                # Grab opponent in same "position" relative to it's teammates
-                opponent = opponents[min(teammates.index(player), len(opponents) - 1)]
-
-                self.game_state.players = [player, opponent]
+                # create dummy opponents and teammates up to expectd size
+                create_opp = self.expected_team_size - len(opponents)
+                create_team = self.expected_team_size - len(teammates)
+                dummie_opp: List[PlayerData] = []
+                dummie_team: List[PlayerData] = []
+                for player in range(create_opp):
+                    _make_dummy_player(dummie_opp)
+                for player in range(create_team):
+                    _make_dummy_player(dummie_team)
+                teammates.extend(dummie_team)
+                opponents.extend(dummie_opp)
+                self.game_state.players = [player] + teammates + opponents
 
             obs = self.obs_builder.build_obs(player, self.game_state, self.action)
             self.action = self.act_parser.parse_actions(self.agent.act(obs), self.game_state)[0]  # Dim is (N, 8)
