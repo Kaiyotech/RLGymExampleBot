@@ -19,6 +19,5 @@ class DiscreteAction:
 
         # map all binned actions from {0, 1, 2 .. n_bins - 1} to {-1 .. 1}.
         actions[..., :5] = actions[..., :5] / (self._n_bins // 2) - 1
-        print(actions)
         return actions
 

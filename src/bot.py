@@ -3,20 +3,20 @@ from rlbot.utils.structures.game_data_struct import GameTickPacket
 
 import numpy as np
 
-from action.default_act import DefaultAction
+from action.discrete_act import DiscreteAction
 from agent import Agent
 from obs.advanced_obs import AdvancedObs
 from rlgym_compat import GameState, PhysicsObject, PlayerData
 from typing import List
 
+import copy
 
-def _make_dummy_player(dummies: [PlayerData]):
-    player = PlayerData()
-    player.car_id = 0
-    player.team_num = 0
-    player.is_demoed = True
-    player.boost_amount = 0
-    dummies.extend([player])
+
+def add_players(carid, player: PlayerData, playerlist: [PlayerData]):
+    tmp_play = copy.deepcopy(player)
+    tmp_play.is_demoed = True
+    tmp_play.car_id = carid
+    playerlist.extend([tmp_play])
     return
 
 
@@ -28,7 +28,7 @@ class RLGymExampleBot(BaseAgent):
         # Swap the obs builder if you are using a different one, RLGym's AdvancedObs is also available
         self.obs_builder = AdvancedObs()
         # Swap the action parser if you are using a different one, RLGym's Discrete and Continuous are also available
-        self.act_parser = DefaultAction()
+        self.act_parser = DiscreteAction(n_bins=101)
         # Your neural network logic goes inside the Agent class, go take a look inside src/agent.py
         self.agent = Agent()
         # Adjust the tickskip if your agent was trained with a different value
@@ -78,15 +78,21 @@ class RLGymExampleBot(BaseAgent):
                 # create dummy opponents and teammates up to expectd size
                 create_opp = self.expected_team_size - len(opponents)
                 create_team = self.expected_team_size - len(teammates)
-                dummie_opp: List[PlayerData] = []
-                dummie_team: List[PlayerData] = []
-                for player in range(create_opp):
-                    _make_dummy_player(dummie_opp)
-                for player in range(create_team):
-                    _make_dummy_player(dummie_team)
-                teammates.extend(dummie_team)
-                opponents.extend(dummie_opp)
-                self.game_state.players = [player] + teammates + opponents
+                update_teammates: List[PlayerData] = []
+                update_opponents: List[PlayerData] = []
+                update_teammates.extend(teammates)
+                update_opponents.extend(opponents)
+                all_players: List[PlayerData] = []
+                all_players.extend(teammates)
+                all_players.extend(opponents)
+                carid = max(teammates[-1].car_id, opponents[-1].car_id) + 1
+                for player_i in range(create_team):
+                    add_players(carid, player, all_players)
+                    carid += 1
+                for player_i in range(create_opp):
+                    add_players(carid, opponents[0], all_players)
+                    carid += 1
+                self.game_state.players = all_players
 
             obs = self.obs_builder.build_obs(player, self.game_state, self.action)
             self.action = self.act_parser.parse_actions(self.agent.act(obs), self.game_state)[0]  # Dim is (N, 8)
